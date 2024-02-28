@@ -405,8 +405,8 @@ private:
   geometry_msgs::msg::Twist last_cmd_; //!< Store the last control command generated in computeVelocityCommands()
   
   std::vector<geometry_msgs::msg::Point> footprint_spec_; //!< Store the footprint of the robot 
-  double robot_inscribed_radius_; //!< The radius of the inscribed circle of the robot (collision possible)
-  double robot_circumscribed_radius; //!< The radius of the circumscribed circle of the robot
+  std::atomic<double> robot_inscribed_radius_; //!< The radius of the inscribed circle of the robot (collision possible)
+  std::atomic<double> robot_circumscribed_radius; //!< The radius of the circumscribed circle of the robot
     
   // flags
   bool initialized_; //!< Keeps track about the correct initialization of this class

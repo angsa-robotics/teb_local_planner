@@ -86,6 +86,36 @@ inline double average_angles(const std::vector<double>& angles)
       return std::atan2(y, x);
 }
 
+/**
+ * average two angles
+ * From https://github.com/RainerKuemmerle/g2o/commit/dfaa2672280089fd8433dd6b7e5a0be51fefb433#diff-2c9c05e655bb7ffa745bcb4f0d414db932ec120764ec603e0661d202114c52daL106
+ */
+inline double average_angle(double theta1, double theta2) {
+double x, y;
+
+x = std::cos(theta1) + std::cos(theta2);
+y = std::sin(theta1) + std::sin(theta2);
+if (x == 0 && y == 0)
+    return 0;
+else
+    return std::atan2(y, x);
+}
+
+/**
+ * sign function.
+ * @return the sign of x. +1 for x > 0, -1 for x < 0, 0 for x == 0
+ * From https://github.com/RainerKuemmerle/g2o/commit/dfaa2672280089fd8433dd6b7e5a0be51fefb433#diff-2c9c05e655bb7ffa745bcb4f0d414db932ec120764ec603e0661d202114c52daL122
+ */
+template <typename T>
+inline int sign(T x) {
+  if (x > 0)
+    return 1;
+  else if (x < 0)
+    return -1;
+  else
+    return 0;
+}
+
 /** @brief Small helper function: check if |a|<|b| */
 inline bool smaller_than_abs(double i, double j) {return std::fabs(i)<std::fabs(j);}
 

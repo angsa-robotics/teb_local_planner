@@ -1107,7 +1107,29 @@ void TebLocalPlannerROS::customViaPointsCB(const nav_msgs::msg::Path::ConstShare
   via_points_.clear();
   for (const geometry_msgs::msg::PoseStamped& pose : via_points_msg->poses)
   {
-    via_points_.emplace_back(pose.pose.position.x, pose.pose.position.y);
+    // if pose frame_id is different from the global_frame, then transform the pose into the global_frame before inserting into via_points
+    if (pose.header.frame_id != cfg_->map_frame)
+    {
+      geometry_msgs::msg::PoseStamped transformed_pose;
+      try
+      {
+        geometry_msgs::msg::TransformStamped transformStamped = tf_->lookupTransform(
+                    cfg_->map_frame, tf2::timeFromSec(0),
+                    pose.header.frame_id, tf2::timeFromSec(0),
+                    pose.header.frame_id, tf2::durationFromSec(0.5));
+        tf2::doTransform(pose, transformed_pose, transformStamped);
+      }
+      catch (tf2::TransformException ex)
+      {
+        RCLCPP_ERROR(logger_, "%s",ex.what());
+        continue;
+      }
+      via_points_.push_back( Eigen::Vector2d(transformed_pose.pose.position.x ,transformed_pose.pose.position.y ) );
+
+    }
+    else {
+      via_points_.push_back( Eigen::Vector2d(pose.pose.position.x ,pose.pose.position.y ) );
+    }
   }
   custom_via_points_active_ = !via_points_.empty();
 }

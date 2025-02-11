@@ -341,7 +341,7 @@ void TebVisualization::publishViaPoints(const std::vector< Eigen::Vector2d, Eige
   marker.header.stamp = nh_->now();
   marker.ns = ns;
   marker.id = 0;
-  marker.type = visualization_msgs::msg::Marker::POINTS;
+  marker.type = visualization_msgs::msg::Marker::CUBE_LIST;
   marker.action = visualization_msgs::msg::Marker::ADD;
   marker.lifetime = rclcpp::Duration(2, 0);
   marker.pose.orientation.w = 1.0;
@@ -357,6 +357,7 @@ void TebVisualization::publishViaPoints(const std::vector< Eigen::Vector2d, Eige
   
   marker.scale.x = 0.1;
   marker.scale.y = 0.1;
+  marker.scale.z = 0.1;
   marker.color.a = 1.0;
   marker.color.r = 0.0;
   marker.color.g = 0.0;

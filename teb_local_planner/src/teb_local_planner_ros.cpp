@@ -656,11 +656,9 @@ bool TebLocalPlannerROS::pruneGlobalPlan(const geometry_msgs::msg::PoseStamped& 
   try
   {
     // transform robot pose into the plan frame (we do not wait here, since pruning not crucial, if missed a few times)
-    //geometry_msgs::msg::TransformStamped global_to_plan_transform = tf_->lookupTransform(global_plan.front().header.frame_id, global_pose.header.frame_id, tf2::timeFromSec(0));
-    geometry_msgs::msg::PoseStamped robot = tf_->transform(
-              global_pose,
-              global_plan.front().header.frame_id);
-
+    geometry_msgs::msg::TransformStamped global_to_plan_transform = tf_->lookupTransform(global_plan.front().header.frame_id, global_pose.header.frame_id, tf2::timeFromSec(0));
+    geometry_msgs::msg::PoseStamped robot = global_pose;
+    tf2::doTransform(robot, robot, global_to_plan_transform);
     //robot.setData( global_to_plan_transform * global_pose );
     
     double dist_thresh_sq = dist_behind_robot*dist_behind_robot;
@@ -688,7 +686,7 @@ bool TebLocalPlannerROS::pruneGlobalPlan(const geometry_msgs::msg::PoseStamped& 
   }
   catch (const tf2::TransformException& ex)
   {
-    RCLCPP_DEBUG(logger_, "Cannot prune path since no transform is available: %s\n", ex.what());
+    RCLCPP_ERROR(logger_, "Cannot prune path since no transform is available: %s\n", ex.what());
     return false;
   }
   return true;
@@ -778,7 +776,10 @@ bool TebLocalPlannerROS::transformGlobalPlan(const std::vector<geometry_msgs::ms
     double plan_length = 0; // check cumulative Euclidean distance along the plan
     
     //now we'll transform until points are outside of our distance threshold
-    while(i < (int)global_plan.size() && sq_dist <= sq_dist_threshold && (max_plan_length<=0 || plan_length <= max_plan_length))
+
+    // We disabled checking for sq_dist_threshold, because it causes the transformed_plan to be empty which makes us shortcut the viapoints
+    // while(i < (int)global_plan.size() && sq_dist <= sq_dist_threshold && (max_plan_length<=0 || plan_length <= max_plan_length))
+    while(i < (int)global_plan.size() && (max_plan_length<=0 || plan_length <= max_plan_length))
     {
       //const geometry_msgs::msg::PoseStamped& pose = global_plan[i];
       //tf::poseStampedMsgToTF(pose, tf_pose);

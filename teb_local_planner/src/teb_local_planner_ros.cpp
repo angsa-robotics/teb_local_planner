@@ -1059,10 +1059,10 @@ void TebLocalPlannerROS::setSpeedLimit(const double& speed_limit,
     cfg_->robot.max_vel_theta = cfg_->robot.base_max_vel_theta;
   } else {
     if (percentage) {
-      if (speed_limit > 1.0 || speed_limit < 0.0) {
+      if (speed_limit > 100.0 || speed_limit < 0.0) {
         RCLCPP_WARN_THROTTLE(
             logger_, *(clock_), 100,
-            "Percentage given outside the range 0-1. Using base velocities.");
+            "Percentage given outside the range 0-100. Using base velocities.");
         // Restore defaults
         cfg_->robot.max_vel_x = cfg_->robot.base_max_vel_x;
         cfg_->robot.max_vel_x_backwards = cfg_->robot.base_max_vel_x_backwards;

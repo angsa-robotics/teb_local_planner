@@ -16,6 +16,7 @@ endif()
 ## Find catkin macros and libraries
 find_package(ament_cmake REQUIRED)
 find_package(costmap_converter REQUIRED)
+find_package(costmap_converter_msgs REQUIRED)
 find_package(dwb_critics REQUIRED)
 find_package(nav_2d_utils REQUIRED)
 find_package(nav2_core REQUIRED)
@@ -84,8 +85,14 @@ add_library(teb_local_planner SHARED
    src/graph_search.cpp
 )
 
+add_executable(
+  test_optim_node
+  src/test_optim_node.cpp
+)
+
 set(ament_dependencies
     costmap_converter
+    costmap_converter_msgs
     dwb_critics
     nav_2d_utils
     nav2_core
@@ -109,8 +116,14 @@ set(ament_dependencies
 ament_target_dependencies(teb_local_planner
    ${ament_dependencies}
 )
+ament_target_dependencies(test_optim_node
+   ${ament_dependencies}
+)
 target_link_libraries(teb_local_planner
    ${EXTERNAL_LIBS}
+)
+target_link_libraries(test_optim_node
+   teb_local_planner
 )
 
 target_compile_definitions(teb_local_planner PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
@@ -123,6 +136,10 @@ target_compile_definitions(teb_local_planner PUBLIC "PLUGINLIB__DISABLE_BOOST_FU
 ## Mark executables and/or libraries for installation
 install(TARGETS teb_local_planner
    DESTINATION lib
+)
+
+install(TARGETS test_optim_node
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 ## Mark cpp header files for installation

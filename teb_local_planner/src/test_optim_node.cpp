@@ -7,6 +7,9 @@
 #include "nav_msgs/msg/path.hpp"
 #include "visualization_msgs/msg/marker.hpp"
 #include "costmap_converter_msgs/msg/obstacle_array_msg.hpp"
+#include "interactive_markers/interactive_marker_server.hpp"
+#include "visualization_msgs/msg/interactive_marker.hpp"
+#include "visualization_msgs/msg/interactive_marker_control.hpp"
 
 using namespace teb_local_planner;
 
@@ -35,24 +38,37 @@ private:
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr via_points_sub;
   std::vector<rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr> obst_vel_subs;
 
+  // Dynamic parameter callback
+  rcl_interfaces::msg::SetParametersResult dynamicParametersCallback(const std::vector<rclcpp::Parameter> &parameters);
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr dynamic_param_callback_handle_;
+
+  // Interactive Marker Server
+  std::shared_ptr<interactive_markers::InteractiveMarkerServer> marker_server_;
+
   void initializeObstacles();
   void mainCycleCallback();
   void publishCycleCallback();
   void customObstacleCallback(const costmap_converter_msgs::msg::ObstacleArrayMsg::SharedPtr msg);
   void clickedPointsCallback(const geometry_msgs::msg::PointStamped::SharedPtr msg);
   void viaPointsCallback(const nav_msgs::msg::Path::SharedPtr msg);
-  void setObstacleVelocityCallback(const geometry_msgs::msg::Twist::SharedPtr msg, unsigned int id);
+  // void setObstacleVelocityCallback(const geometry_msgs::msg::Twist::SharedPtr msg, unsigned int id);
+  void createInteractiveMarker(const ObstaclePtr& obstacle, unsigned int id);
+  void interactiveMarkerCallback(const visualization_msgs::msg::InteractiveMarkerFeedback::ConstSharedPtr &feedback);
 };
 
 // Constructor — leave empty to avoid shared_from_this in constructor
 TestOptimNode::TestOptimNode()
-  : nav2_util::LifecycleNode("test_optim_node") {}
+  : nav2_util::LifecycleNode("test_optim_node") {
+
+}
 
 // Separate init logic
 void TestOptimNode::init()
 {
   config.declareParameters(shared_from_this(), this->get_name());
   config.loadRosParamFromNodeHandle(shared_from_this(), this->get_name());
+  dynamic_param_callback_handle_ = this->add_on_set_parameters_callback(
+    std::bind(&TebConfig::dynamicParametersCallback, std::ref(config), std::placeholders::_1));
   visual = std::make_shared<TebVisualization>(shared_from_this(), config);
   visual->on_configure();
   visual->on_activate();
@@ -71,6 +87,14 @@ void TestOptimNode::init()
 
   planner->setVisualization(visual);
   initializeObstacles();
+
+  marker_server_ = std::make_shared<interactive_markers::InteractiveMarkerServer>("marker_obstacles", shared_from_this());
+
+  for (unsigned int i = 0; i < obst_vector.size(); ++i) {
+    createInteractiveMarker(obst_vector[i], i);
+  }
+
+  marker_server_->applyChanges();
 
   main_cycle_timer = this->create_wall_timer(
     std::chrono::milliseconds(25),
@@ -104,16 +128,16 @@ void TestOptimNode::initializeObstacles()
 
   no_fixed_obstacles = obst_vector.size();
 
-  for (unsigned int i = 0; i < obst_vector.size(); ++i)
-  {
-    std::string topic = "/test_optim_node/obstacle_" + std::to_string(i) + "/cmd_vel";
-    auto sub = this->create_subscription<geometry_msgs::msg::Twist>(
-      topic, 1,
-      [this, i](const geometry_msgs::msg::Twist::SharedPtr msg) {
-        setObstacleVelocityCallback(msg, i);
-      });
-    obst_vel_subs.push_back(sub);
-  }
+  // for (unsigned int i = 0; i < obst_vector.size(); ++i)
+  // {
+  //   std::string topic = "/test_optim_node/obstacle_" + std::to_string(i) + "/cmd_vel";
+  //   auto sub = this->create_subscription<geometry_msgs::msg::Twist>(
+  //     topic, 1,
+  //     [this, i](const geometry_msgs::msg::Twist::SharedPtr msg) {
+  //       setObstacleVelocityCallback(msg, i);
+  //     });
+  //   obst_vel_subs.push_back(sub);
+  // }
 }
 
 void TestOptimNode::mainCycleCallback()
@@ -172,14 +196,65 @@ void TestOptimNode::viaPointsCallback(const nav_msgs::msg::Path::SharedPtr msg)
     via_points.emplace_back(pose.pose.position.x, pose.pose.position.y);
 }
 
-void TestOptimNode::setObstacleVelocityCallback(const geometry_msgs::msg::Twist::SharedPtr msg, unsigned int id)
-{
-  if (id >= obst_vector.size())
-  {
-    RCLCPP_WARN(this->get_logger(), "Cannot set velocity: unknown obstacle id.");
+// void TestOptimNode::setObstacleVelocityCallback(const geometry_msgs::msg::Twist::SharedPtr msg, unsigned int id)
+// {
+//   if (id >= obst_vector.size())
+//   {
+//     RCLCPP_WARN(this->get_logger(), "Cannot set velocity: unknown obstacle id.");
+//     return;
+//   }
+//   obst_vector[id]->setCentroidVelocity(Eigen::Vector2d(msg->linear.x, msg->linear.y));
+// }
+
+void TestOptimNode::createInteractiveMarker(const ObstaclePtr& obstacle, unsigned int id) {
+  visualization_msgs::msg::InteractiveMarker i_marker;
+  i_marker.header.frame_id = "odom"; // Replace with your frame
+  i_marker.header.stamp = this->now();
+  i_marker.name = "obstacle_" + std::to_string(id);
+  i_marker.description = "Obstacle";
+  i_marker.pose.position.x = obstacle->getCentroid().x();
+  i_marker.pose.position.y = obstacle->getCentroid().y();
+  i_marker.pose.orientation.w = 1.0;
+
+  visualization_msgs::msg::Marker box_marker;
+  box_marker.type = visualization_msgs::msg::Marker::CUBE;
+  box_marker.scale.x = 0.2;
+  box_marker.scale.y = 0.2;
+  box_marker.scale.z = 0.2;
+  box_marker.color.r = 0.5;
+  box_marker.color.g = 0.5;
+  box_marker.color.b = 0.5;
+  box_marker.color.a = 1.0;
+
+  visualization_msgs::msg::InteractiveMarkerControl box_control;
+  box_control.always_visible = true;
+  box_control.markers.push_back(box_marker);
+  i_marker.controls.push_back(box_control);
+
+  visualization_msgs::msg::InteractiveMarkerControl move_control;
+  move_control.name = "move_xy";
+  move_control.orientation.w = 1.0;
+  move_control.orientation.x = 0;
+  move_control.orientation.y = 1.0;
+  move_control.orientation.z = 0;
+  move_control.interaction_mode = visualization_msgs::msg::InteractiveMarkerControl::MOVE_PLANE;
+  i_marker.controls.push_back(move_control);
+
+  marker_server_->insert(i_marker, std::bind(&TestOptimNode::interactiveMarkerCallback, this, std::placeholders::_1));
+}
+
+void TestOptimNode::interactiveMarkerCallback(const visualization_msgs::msg::InteractiveMarkerFeedback::ConstSharedPtr &feedback) {
+  unsigned int id = std::stoi(feedback->marker_name.substr(feedback->marker_name.find_last_of('_') + 1));
+  if (id >= obst_vector.size()) {
+    RCLCPP_WARN(this->get_logger(), "Invalid obstacle ID in interactive marker feedback.");
     return;
   }
-  obst_vector[id]->setCentroidVelocity(Eigen::Vector2d(msg->linear.x, msg->linear.y));
+
+  auto point_obstacle = std::dynamic_pointer_cast<PointObstacle>(obst_vector[id]);
+  if (point_obstacle) {
+    point_obstacle->position() = Eigen::Vector2d(feedback->pose.position.x, feedback->pose.position.y);
+    RCLCPP_INFO(this->get_logger(), "Updated obstacle %d position to (%.2f, %.2f)", id, feedback->pose.position.x, feedback->pose.position.y);
+  }
 }
 
 int main(int argc, char** argv)

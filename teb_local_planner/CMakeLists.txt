@@ -22,7 +22,7 @@ find_package(nav_2d_utils REQUIRED)
 find_package(nav2_core REQUIRED)
 find_package(nav2_costmap_2d REQUIRED)
 find_package(nav2_util REQUIRED)
-#find_package(interactive_markers REQUIRED)
+find_package(interactive_markers REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -112,6 +112,7 @@ set(ament_dependencies
     tf2_ros
     visualization_msgs
     builtin_interfaces
+    interactive_markers
 )
 ament_target_dependencies(teb_local_planner
    ${ament_dependencies}

@@ -406,7 +406,11 @@ geometry_msgs::msg::TwistStamped TebLocalPlannerROS::computeVelocityCommands(con
     ++no_infeasible_plans_; // increase number of infeasible solutions in a row
     time_last_infeasible_plan_ = clock_->now();
     last_cmd_ = cmd_vel.twist;
-    
+
+    planner_->visualize();
+    visualization_->publishObstacles(obstacles_);
+    visualization_->publishViaPoints(via_points_);
+    visualization_->publishGlobalPlan(global_plan_);
     throw nav2_core::NoValidControl(
       std::string("TebLocalPlannerROS: trajectory is not feasible. Resetting planner...")
     );

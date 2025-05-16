@@ -131,7 +131,7 @@ void TebVisualization::publishRobotFootprintModel(const PoseSE2& current_pose, c
     marker_it->action = visualization_msgs::msg::Marker::ADD;
     marker_it->ns = ns;
     marker_it->id = idx;
-    marker_it->lifetime = rclcpp::Duration(2, 0);
+    // marker_it->lifetime = rclcpp::Duration(2, 0);
     teb_marker_pub_->publish(*marker_it);
   }
   
@@ -157,7 +157,7 @@ void TebVisualization::publishObstacles(const ObstContainer& obstacles) const
     marker.id = 0;
     marker.type = visualization_msgs::msg::Marker::POINTS;
     marker.action = visualization_msgs::msg::Marker::ADD;
-    marker.lifetime = rclcpp::Duration(2, 0);
+    // marker.lifetime = rclcpp::Duration(2, 0);
     marker.pose.orientation.w = 1.0;
     
     for (ObstContainer::const_iterator obst = obstacles.begin(); obst != obstacles.end(); ++obst)
@@ -220,7 +220,7 @@ void TebVisualization::publishObstacles(const ObstContainer& obstacles) const
       marker.id = idx++;
       marker.type = visualization_msgs::msg::Marker::SPHERE_LIST;
       marker.action = visualization_msgs::msg::Marker::ADD;
-      marker.lifetime = rclcpp::Duration(2, 0);
+      // marker.lifetime = rclcpp::Duration(2, 0);
       geometry_msgs::msg::Point point;
       point.x = pobst->x();
       point.y = pobst->y();
@@ -254,7 +254,7 @@ void TebVisualization::publishObstacles(const ObstContainer& obstacles) const
       marker.id = idx++;
       marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
       marker.action = visualization_msgs::msg::Marker::ADD;
-      marker.lifetime = rclcpp::Duration(2, 0);
+      // marker.lifetime = rclcpp::Duration(2, 0);
       marker.pose.orientation.w = 1.0;
 
       geometry_msgs::msg::Point start;
@@ -296,7 +296,7 @@ void TebVisualization::publishObstacles(const ObstContainer& obstacles) const
       marker.id = idx++;
       marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
       marker.action = visualization_msgs::msg::Marker::ADD;
-      marker.lifetime = rclcpp::Duration(2, 0);
+      // marker.lifetime = rclcpp::Duration(2, 0);
       marker.pose.orientation.w = 1.0;
       
       for (Point2dContainer::const_iterator vertex = pobst->vertices().begin(); vertex != pobst->vertices().end(); ++vertex)
@@ -343,7 +343,7 @@ void TebVisualization::publishViaPoints(const std::vector< Eigen::Vector2d, Eige
   marker.id = 0;
   marker.type = visualization_msgs::msg::Marker::CUBE_LIST;
   marker.action = visualization_msgs::msg::Marker::ADD;
-  marker.lifetime = rclcpp::Duration(2, 0);
+  // marker.lifetime = rclcpp::Duration(2, 0);
   marker.pose.orientation.w = 1.0;
   
   for (std::size_t i=0; i < via_points.size(); ++i)

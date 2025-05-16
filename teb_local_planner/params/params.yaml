@@ -1,0 +1,52 @@
+test_optim_node:
+  ros__parameters:
+    test_optim_node:
+      # Robot & Kinematics
+      footprint_model.type: polygon
+      footprint_model.vertices: '[ [0.201, 0.411], [0.201, -0.411], [-0.981, -0.411], [-0.981, 0.411] ]'
+      max_vel_x: 0.7 # (must be changed with velocity smoother) Maximum translational velocity of the robot in meters/sec
+      max_vel_x_backwards: 0.25 # Maximum absolute translational velocity of the robot while driving backwards in meters/sec. See optimization parameter weight_kinematics_forward_drive
+      max_vel_theta: 1.0 # (must be changed with velocity smoother)
+      acc_lim_x: 0.35 # (must be changed with velocity smoother) Maximum translational acceleration of the robot in meters/sec^2
+      acc_lim_theta: 0.7 # (must be changed with velocity smoother) Maximum angular acceleration of the robot in radians/sec^2
+      min_turning_radius: 0.0 # 0.0 is the default - makes the robot be a diff-drive robot, not a car-like robot.
+      odom_topic: "/odometry/encoders"
+      transform_tolerance: 0.25 # (default 0.50) Tolerance when querying the TF Tree for a transformation (seconds)
+      # Obstacles & Costmap
+      min_obstacle_dist: 0.2 # Minimum desired separation from obstacles in meters. Karl: This is a bit "softer" than a real collision and is better suited for less string "abort" of planing. This plus the footprint padding should equal the padding of the planner.
+      inflation_dist: 0.20 # Buffer zone around obstacles with non-zero penalty costs (should be larger than min_obstacle_dist in order to take effect).
+      costmap_converter_plugin: "costmap_converter::CostmapToPolygonsDBSMCCH"
+      costmap_converter_spin_thread: True
+      costmap_converter_rate: 10
+      # obstacle_proximity_** Does not reliably work
+      # obstacle_proximity_ratio_max_vel: 1.0 # Ratio of the maximum velocities used as an upper bound when reducing the speed due to the proximity to a static obstacles
+      # obstacle_proximity_lower_bound: 0.0 # Distance to a static obstacle for which the velocity should be lower
+      # obstacle_proximity_upper_bound: 0.9 # Distance to a static obstacle for which the velocity should be higher
+      feasibility_check_lookahead_distance: 2.0 # (default 0?) Specify up to which distance (and with an index below feasibility_check_no_poses) from the robot the feasibility should be checked each sampling interval; if -1, all poses up to feasibility_check_no_poses are checked.
+      feasibility_check_no_poses: -1 # (default 0?) Specify up to which pose (under the feasibility_check_lookahead_distance) on the predicted plan the feasibility should be checked each sampling interval; if -1, all poses up to feasibility_check_lookahead_distance are checked.
+      min_resolution_collision_check_angular: 0.3 # [rad] Min angular resolution used during the costmap collision check. If not respected, intermediate samples are added. [rad]. Probably too low values cause the "swinging ass into obstacle" bug.
+      # Goal Tolerance
+      free_goal_vel: False # (default false) Remove the goal velocity constraint such that the robot can arrive at the goal with maximum speed
+      # Trajectory
+      selection_cost_hysteresis: 0.7 # (default 1.0) Specify how much trajectory cost must a new candidate have w.r.t. a previously selected trajectory in order to be selected (selection if new_cost < old_cost*factor).
+      global_plan_overwrite_orientation: False # (default True) Overwrite orientation of local subgoals provided by the global planner (since they often provide only a 2D path)
+      global_plan_viapoint_sep: 0.5 # (default: -0.1 (disabled)) If positive, via-points are extracted from the global plan (path-following mode). The value determines the resolution of the reference path (min. separation between each two consecutive via-points along the global plan, if negative: disabled). Refer to parameter weight_viapoint for adjusting the intensity.
+      global_plan_prune_distance: 0.2
+      max_global_plan_lookahead_dist: 5.0 # (default: 3.0) Specify the maximum length (cumulative Euclidean distances) of the subset of the global plan taken into account for optimization. The actual length is than determined by the logical conjunction of the local costmap size and this maximum bound. Set to zero or negative in order to deactivate this limitation.
+      allow_init_with_backwards_motion: True # (default False) If true, underlying trajectories might be initialized with backwards motions in case the goal is behind the start within the local costmap (this is only recommended if the robot is equipped with rear sensors).
+      weight_obstacle: 500.0 # (default 50.0) Optimization weight for keeping a minimum distance from obstacles
+      weight_inflation: 1.0 # (default 0.1) Optimization weight for the inflation penalty (should be small). Karl: High value (20.0) lead to the robot not passing through narrow passages.
+      weight_kinematics_turning_radius: 0.0 # (default 1.0) Optimization weight for enforcing a minimum turning radius (only for carlike robots).
+      weight_kinematics_forward_drive: 30.0
+      weight_acc_lim_theta: 10.0
+      weight_acc_lim_x: 10.0
+      weight_viapoint: 200.0 #  (default 1.0) Optimization weight for minimizing the distance to via-points (resp. reference path).
+      penalty_epsilon: 0.05 # (default 0.1 - larger for acceleration limits) Add a small safety margin to penalty functions for hard-constraint approximations
+      # Parallel Planning
+      enable_homotopy_class_planning: True
+      enable_multithreading: True
+      optimization_verbose: False
+      teb_autoresize: True
+      min_samples: 3
+      max_samples: 20
+      visualize_hc_graph: False

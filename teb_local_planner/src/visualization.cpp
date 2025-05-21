@@ -39,6 +39,7 @@
 // ros stuff
 #include "teb_local_planner/visualization.h"
 #include "teb_local_planner/optimal_planner.h"
+#include <visualization_msgs/msg/marker_array.h>
 
 namespace teb_local_planner
 {
@@ -111,6 +112,50 @@ void TebVisualization::publishLocalPlanAndPoses(const TimedElasticBand& teb) con
 }
 
 
+void TebVisualization::publishAllFootprints(const TimedElasticBand& teb, const BaseRobotFootprintModel& robot_model) {
+  if (printErrorWhenNotInitialized())
+    return;
+
+  visualization_msgs::msg::MarkerArray marker_array;
+  int idx = 2000000; // avoid overshadowing by obstacles
+  for (int i = 0; i < teb.sizePoses(); i++) {
+    PoseSE2 pose = teb.Pose(i);
+    std::vector<visualization_msgs::msg::Marker> markers;
+    robot_model.visualizeRobot(pose, markers, toColorMsg(1.0, 1.0, 0.0, 0.5));
+    for (auto& marker : markers) {
+      marker.header.frame_id = cfg_->map_frame;
+      marker.header.stamp = nh_->now();
+      marker.action = visualization_msgs::msg::Marker::ADD;
+      marker.ns = "RobotFootprints";
+      marker.id = idx++;
+      marker_array.markers.push_back(marker);
+    }
+  }
+  // Publish all markers at once
+  if (!marker_array.markers.empty()) {
+    teb_footprints_pub_->publish(marker_array);
+  }
+}
+
+// void TebVisualization::publishAllFootprints(const TimedElasticBand& teb, const BaseRobotFootprintModel& robot_model) {
+//   if (printErrorWhenNotInitialized())
+//     return;
+
+//   int idx = 2000000; // avoid overshadowing by obstacles
+//   for (int i = 0; i < teb.sizePoses(); i++) {
+//     PoseSE2 pose = teb.Pose(i);
+//     std::vector<visualization_msgs::msg::Marker> markers;
+//     robot_model.visualizeRobot(pose, markers, toColorMsg(1.0, 1.0, 0.0, 0.5));
+//     for (auto& marker : markers) {
+//       marker.header.frame_id = cfg_->map_frame;
+//       marker.header.stamp = nh_->now();
+//       marker.action = visualization_msgs::msg::Marker::ADD;
+//       marker.ns = "RobotFootprints";
+//       marker.id = idx++;
+//       teb_marker_pub_->publish(marker);
+//     }
+//   }
+// }
 
 void TebVisualization::publishRobotFootprintModel(const PoseSE2& current_pose, const BaseRobotFootprintModel& robot_model, const std::string& ns,
                                                   const std_msgs::msg::ColorRGBA &color)
@@ -521,6 +566,7 @@ nav2_util::CallbackReturn TebVisualization::on_configure()
   local_plan_pub_ = nh_->create_publisher<nav_msgs::msg::Path>("local_plan",1);
   teb_poses_pub_ = nh_->create_publisher<geometry_msgs::msg::PoseArray>("teb_poses", 1);
   teb_marker_pub_ = nh_->create_publisher<visualization_msgs::msg::Marker>("teb_markers", 1);
+  teb_footprints_pub_ = nh_->create_publisher<visualization_msgs::msg::MarkerArray>("teb_footprints", 1);
   feedback_pub_ = nh_->create_publisher<teb_msgs::msg::FeedbackMsg>("teb_feedback", 1);
 
   initialized_ = true;
@@ -534,6 +580,7 @@ TebVisualization::on_activate()
   local_plan_pub_->on_activate();
   teb_poses_pub_->on_activate();
   teb_marker_pub_->on_activate();
+  teb_footprints_pub_->on_activate();
   feedback_pub_->on_activate();
   return nav2_util::CallbackReturn::SUCCESS;
 }
@@ -545,6 +592,7 @@ TebVisualization::on_deactivate()
   local_plan_pub_->on_deactivate();
   teb_poses_pub_->on_deactivate();
   teb_marker_pub_->on_deactivate();
+  teb_footprints_pub_->on_deactivate();
   feedback_pub_->on_deactivate();
   return nav2_util::CallbackReturn::SUCCESS;
 }
@@ -556,6 +604,7 @@ TebVisualization::on_cleanup()
   local_plan_pub_.reset();
   teb_poses_pub_.reset();
   teb_marker_pub_.reset();
+  teb_footprints_pub_.reset();
   feedback_pub_.reset();
 
   return nav2_util::CallbackReturn::SUCCESS;

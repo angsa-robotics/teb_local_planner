@@ -121,7 +121,8 @@ void TebOptimalPlanner::visualize()
   visualization_->publishLocalPlanAndPoses(teb_);
   
   if (teb_.sizePoses() > 0)
-    visualization_->publishRobotFootprintModel(teb_.Pose(0), *cfg_->robot_model);
+    // visualization_->publishRobotFootprintModel(teb_.Pose(0), *cfg_->robot_model);
+    visualization_->publishAllFootprints(teb_, *cfg_->robot_model);
   
   if (cfg_->trajectory.publish_feedback)
     visualization_->publishFeedbackMessage(*this, *obstacles_);

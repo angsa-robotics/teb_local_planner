@@ -116,6 +116,7 @@ void TebConfig::declareParameters(const nav2_util::LifecycleNode::SharedPtr nh, 
   declare_parameter_if_not_declared(nh, name + "." + "weight_acc_lim_theta", rclcpp::ParameterValue(optim.weight_acc_lim_theta));
   declare_parameter_if_not_declared(nh, name + "." + "weight_kinematics_nh", rclcpp::ParameterValue(optim.weight_kinematics_nh));
   declare_parameter_if_not_declared(nh, name + "." + "weight_kinematics_forward_drive", rclcpp::ParameterValue(optim.weight_kinematics_forward_drive));
+  declare_parameter_if_not_declared(nh, name + "." + "max_reverse_distance", rclcpp::ParameterValue(optim.max_reverse_distance));
   declare_parameter_if_not_declared(nh, name + "." + "weight_kinematics_turning_radius", rclcpp::ParameterValue(optim.weight_kinematics_turning_radius));
   declare_parameter_if_not_declared(nh, name + "." + "weight_optimaltime", rclcpp::ParameterValue(optim.weight_optimaltime));
   declare_parameter_if_not_declared(nh, name + "." + "weight_shortest_path", rclcpp::ParameterValue(optim.weight_shortest_path));
@@ -247,6 +248,7 @@ void TebConfig::loadRosParamFromNodeHandle(const nav2_util::LifecycleNode::Share
   nh->get_parameter_or(name + "." + "weight_acc_lim_theta", optim.weight_acc_lim_theta, optim.weight_acc_lim_theta);
   nh->get_parameter_or(name + "." + "weight_kinematics_nh", optim.weight_kinematics_nh, optim.weight_kinematics_nh);
   nh->get_parameter_or(name + "." + "weight_kinematics_forward_drive", optim.weight_kinematics_forward_drive, optim.weight_kinematics_forward_drive);
+  nh->get_parameter_or(name + "." + "max_reverse_distance", optim.max_reverse_distance, optim.max_reverse_distance);
   nh->get_parameter_or(name + "." + "weight_kinematics_turning_radius", optim.weight_kinematics_turning_radius, optim.weight_kinematics_turning_radius);
   nh->get_parameter_or(name + "." + "weight_optimaltime", optim.weight_optimaltime, optim.weight_optimaltime);
   nh->get_parameter_or(name + "." + "weight_shortest_path", optim.weight_shortest_path, optim.weight_shortest_path);
@@ -535,6 +537,8 @@ rcl_interfaces::msg::SetParametersResult
         optim.weight_kinematics_nh = parameter.as_double();
       } else if (name == node_name + ".weight_kinematics_forward_drive") {
         optim.weight_kinematics_forward_drive = parameter.as_double();
+      } else if (name == node_name + ".max_reverse_distance") {
+        optim.max_reverse_distance = parameter.as_double();
       } else if (name == node_name + ".weight_kinematics_turning_radius") {
         optim.weight_kinematics_turning_radius = parameter.as_double();
       } else if (name == node_name + ".weight_optimaltime") {

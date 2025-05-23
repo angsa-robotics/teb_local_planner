@@ -167,6 +167,7 @@ public:
     double weight_acc_lim_theta; //!< Optimization weight for satisfying the maximum allowed angular acceleration
     double weight_kinematics_nh; //!< Optimization weight for satisfying the non-holonomic kinematics
     double weight_kinematics_forward_drive; //!< Optimization weight for forcing the robot to choose only forward directions (positive transl. velocities, only diffdrive robot)
+    double max_reverse_distance; //!< Maximum allowed reverse distance in meters (when > 0, short reverse motions are penalized less)
     double weight_kinematics_turning_radius; //!< Optimization weight for enforcing a minimum turning radius (carlike robots)
     double weight_optimaltime; //!< Optimization weight for contracting the trajectory w.r.t. transition time
     double weight_shortest_path; //!< Optimization weight for contracting the trajectory w.r.t. path length
@@ -331,6 +332,7 @@ public:
     optim.weight_acc_lim_theta = 1;
     optim.weight_kinematics_nh = 1000;
     optim.weight_kinematics_forward_drive = 1;
+    optim.max_reverse_distance = 0.2; // Allow short reversals up to 20cm
     optim.weight_kinematics_turning_radius = 1;
     optim.weight_optimaltime = 1;
     optim.weight_shortest_path = 0;

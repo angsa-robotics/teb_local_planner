@@ -97,9 +97,25 @@ public:
     // non holonomic constraint
     _error[0] = fabs( ( cos(conf1->theta())+cos(conf2->theta()) ) * deltaS[1] - ( sin(conf1->theta())+sin(conf2->theta()) ) * deltaS[0] );
 
-    // positive-drive-direction constraint
-    Eigen::Vector2d angle_vec ( cos(conf1->theta()), sin(conf1->theta()) );	   
-    _error[1] = penaltyBoundFromBelow(deltaS.dot(angle_vec), 0,0);
+    // positive-drive-direction constraint with strict max reverse distance limit
+    Eigen::Vector2d angle_vec ( cos(conf1->theta()), sin(conf1->theta()) );
+    double distance_projection = deltaS.dot(angle_vec);
+    if (distance_projection >= 0) {
+      // Forward motion - no penalty
+      _error[1] = 0.0;
+    } else {
+      // Backward motion
+      double backward_distance = -distance_projection; // Make positive for easier handling
+      if (backward_distance <= cfg_->optim.max_reverse_distance) {
+        // Small constant penalty for any reverse motion within allowed limit
+        // This slightly discourages reversing but allows it when necessary
+        _error[1] = 0.1;
+      } else {
+        // Strict hard constraint for any motion beyond max_reverse_distance
+        // Using an extremely high constant penalty to effectively block such motions
+        _error[1] = 100000.0; // Very high constant penalty that doesn't depend on distance
+      }
+    }
     // epsilon=0, otherwise it pushes the first bandpoints away from start
 
     TEB_ASSERT_MSG(std::isfinite(_error[0]) && std::isfinite(_error[1]), "EdgeKinematicsDiffDrive::computeError() _error[0]=%f _error[1]=%f\n",_error[0],_error[1]);
@@ -125,9 +141,27 @@ public:
     double aux1 = sin1 + sin2;
     double aux2 = cos1 + cos2;
     
-    double dd_error_1 = deltaS[0]*cos1;
-    double dd_error_2 = deltaS[1]*sin1;
-    double dd_dev = penaltyBoundFromBelowDerivative(dd_error_1+dd_error_2, 0,0);
+    double distance_projection = deltaS[0]*cos1 + deltaS[1]*sin1;
+    double dd_dev = 0.0;
+    
+    // Compute Jacobian for strict reverse distance limit
+    if (distance_projection >= 0) {
+      // Forward motion - no gradient
+      dd_dev = 0.0;
+    } else {
+      // Backward motion
+      double backward_distance = -distance_projection;
+      if (backward_distance <= cfg_->optim.max_reverse_distance) {
+        // Small constant gradient for reverse motion within allowed limit
+        // Since error is constant (0.1), gradient is zero, but adding a small value 
+        // helps with convergence by slightly pushing away from reverse motion
+        dd_dev = -0.01;
+      } else {
+        // Very strong gradient for motion beyond max_reverse_distance
+        // This creates a steep barrier at the boundary
+        dd_dev = -100000.0;
+      }
+    }
     
     double dev_nh_abs = sign( ( cos(conf1->theta())+cos(conf2->theta()) ) * deltaS[1] - 
 	      ( sin(conf1->theta())+sin(conf2->theta()) ) * deltaS[0] );
@@ -137,7 +171,7 @@ public:
     _jacobianOplusXi(0,1) = -aux2 * dev_nh_abs; // nh y1
     _jacobianOplusXi(1,0) = -cos1 * dd_dev; // drive-dir x1
     _jacobianOplusXi(1,1) = -sin1 * dd_dev; // drive-dir y1
-    _jacobianOplusXi(0,2) = (-dd_error_2 - dd_error_1) * dev_nh_abs; // nh angle
+    _jacobianOplusXi(0,2) = (-deltaS[1]*sin1 - deltaS[0]*cos1) * dev_nh_abs; // nh angle
     _jacobianOplusXi(1,2) = ( -sin1*deltaS[0] + cos1*deltaS[1] ) * dd_dev; // drive-dir angle1
     
     // conf2

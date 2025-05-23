@@ -1178,6 +1178,12 @@ void TebLocalPlannerROS::cleanup() {
   return;
 }
 
+void TebLocalPlannerROS::reset()
+{
+  planner_->clearPlanner();
+  return;
+}
+
 } // end namespace teb_local_planner
 
 // register this planner as a nav2_core::Controller plugin

@@ -67,6 +67,7 @@
 // costmap
 #include <costmap_converter/costmap_converter_interface.h>
 #include "nav2_costmap_2d/costmap_filters/filter_values.hpp"
+#include "nav2_smac_planner/collision_checker.hpp"
 
 #include <nav2_util/lifecycle_node.hpp>
 #include <nav2_costmap_2d/costmap_2d_ros.hpp>
@@ -379,7 +380,7 @@ private:
   ObstContainer obstacles_; //!< Obstacle vector that should be considered during local trajectory optimization
   ViaPointContainer via_points_; //!< Container of via-points that should be considered during local trajectory optimization
   TebVisualizationPtr visualization_; //!< Instance of the visualization class (local/global plan, obstacles, ...)
-  std::shared_ptr<dwb_critics::ObstacleFootprintCritic> costmap_model_;
+  std::shared_ptr<nav2_smac_planner::GridCollisionChecker> collision_checker_;
   FailureDetector failure_detector_; //!< Detect if the robot got stucked
   
   std::vector<geometry_msgs::msg::PoseStamped> global_plan_; //!< Store the current global plan

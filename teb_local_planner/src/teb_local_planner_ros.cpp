@@ -57,6 +57,7 @@
 #include <nav2_core/controller_exceptions.hpp>
 #include <nav2_costmap_2d/footprint.hpp>
 #include <nav_2d_utils/tf_help.hpp>
+#include "nav2_smac_planner/utils.hpp"
 
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_eigen/tf2_eigen.hpp>
@@ -68,7 +69,7 @@ namespace teb_local_planner
   
 
 TebLocalPlannerROS::TebLocalPlannerROS() 
-    : costmap_ros_(nullptr), tf_(nullptr), cfg_(new TebConfig()), costmap_model_(nullptr), intra_proc_node_(nullptr),
+    : costmap_ros_(nullptr), tf_(nullptr), cfg_(new TebConfig()), collision_checker_(nullptr), intra_proc_node_(nullptr),
                                            costmap_converter_loader_("costmap_converter", "costmap_converter::BaseCostmapToPolygons"),
                                            custom_via_points_active_(false), no_infeasible_plans_(0),
                                            last_preferred_rotdir_(RotType::none), initialized_(false)
@@ -112,9 +113,17 @@ void TebLocalPlannerROS::initialize(nav2_util::LifecycleNode::SharedPtr node)
     // init other variables
     costmap_ = costmap_ros_->getCostmap(); // locking should be done in MoveBase.
     
-    costmap_model_ = std::make_shared<dwb_critics::ObstacleFootprintCritic>();
-    std::string costmap_model_name("costmap_model");
-    costmap_model_->initialize(node, costmap_model_name, name_, costmap_ros_);
+    // Initialize SMAC collision checker
+    auto num_bins = static_cast<int>(2 * M_PI / cfg_->trajectory.min_resolution_collision_check_angular);
+    collision_checker_ = std::make_shared<nav2_smac_planner::GridCollisionChecker>(
+        costmap_ros_, num_bins, node);
+
+    // Set the footprint for collision checking
+    nav2_costmap_2d::Footprint footprint = costmap_ros_->getRobotFootprint();
+    collision_checker_->setFootprint(
+      costmap_ros_->getRobotFootprint(),
+      costmap_ros_->getUseRadius(),
+      nav2_smac_planner::findCircumscribedCost(costmap_ros_));
 
     cfg_->map_frame = costmap_ros_->getGlobalFrameID(); // TODO
 
@@ -395,7 +404,7 @@ geometry_msgs::msg::TwistStamped TebLocalPlannerROS::computeVelocityCommands(con
     }
   }
 
-  bool feasible = planner_->isTrajectoryFeasible(costmap_model_.get(), footprint_spec_, robot_inscribed_radius_, robot_circumscribed_radius, cfg_->trajectory.feasibility_check_no_poses, cfg_->trajectory.feasibility_check_lookahead_distance);
+  bool feasible = planner_->isTrajectoryFeasible(collision_checker_.get(), footprint_spec_, robot_inscribed_radius_, robot_circumscribed_radius, cfg_->trajectory.feasibility_check_no_poses, cfg_->trajectory.feasibility_check_lookahead_distance);
   if (!feasible)
   {
     cmd_vel.twist.linear.x = cmd_vel.twist.linear.y = cmd_vel.twist.angular.z = 0;

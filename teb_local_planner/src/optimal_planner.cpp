@@ -1250,7 +1250,7 @@ void TebOptimalPlanner::getFullTrajectory(std::vector<teb_msgs::msg::TrajectoryP
 }
 
 
-bool TebOptimalPlanner::isTrajectoryFeasible(dwb_critics::ObstacleFootprintCritic* costmap_model, const std::vector<geometry_msgs::msg::Point>& footprint_spec,
+bool TebOptimalPlanner::isTrajectoryFeasible(nav2_smac_planner::GridCollisionChecker* collision_checker, const std::vector<geometry_msgs::msg::Point>& footprint_spec,
                                              double inscribed_radius, double circumscribed_radius, int look_ahead_idx, double feasibility_check_lookahead_distance)
 {
   if (look_ahead_idx < 0 || look_ahead_idx >= teb().sizePoses())
@@ -1270,7 +1270,7 @@ bool TebOptimalPlanner::isTrajectoryFeasible(dwb_critics::ObstacleFootprintCriti
   for (int i=0; i <= look_ahead_idx; ++i)
   {
     teb().Pose(i).toPoseMsg(pose2d);
-    if (!isPoseValid(pose2d, costmap_model, footprint_spec)){
+    if (!isPoseValid(pose2d, collision_checker, footprint_spec)){
       if (visualization_)
       {
         visualization_->publishInfeasibleRobotPose(teb().Pose(i), *cfg_->robot_model);
@@ -1297,7 +1297,7 @@ bool TebOptimalPlanner::isTrajectoryFeasible(dwb_critics::ObstacleFootprintCriti
                                                            delta_rot / (n_additional_samples + 1.0));
           intermediate_pose.toPoseMsg(pose2d);
 
-          if (!isPoseValid(pose2d, costmap_model, footprint_spec)){
+          if (!isPoseValid(pose2d, collision_checker, footprint_spec)){
             if (visualization_)
             {
               visualization_->publishInfeasibleRobotPose(intermediate_pose, *cfg_->robot_model);
@@ -1311,17 +1311,33 @@ bool TebOptimalPlanner::isTrajectoryFeasible(dwb_critics::ObstacleFootprintCriti
   return true;
 }
 
-bool TebOptimalPlanner::isPoseValid(geometry_msgs::msg::Pose2D pose2d, dwb_critics::ObstacleFootprintCritic* costmap_model,
+bool TebOptimalPlanner::isPoseValid(geometry_msgs::msg::Pose2D pose2d, nav2_smac_planner::GridCollisionChecker* collision_checker,
                            const std::vector<geometry_msgs::msg::Point>& footprint_spec)
 {
   try {
-    if ( costmap_model->scorePose(pose2d, dwb_critics::getOrientedFootprint(pose2d, footprint_spec)) < 0 ) {
-      return false;
+    // Convert world coordinates to grid coordinates
+    unsigned int mx, my;
+    nav2_costmap_2d::Costmap2D* costmap = collision_checker->getCostmapROS()->getCostmap();
+    if (!costmap->worldToMap(pose2d.x, pose2d.y, mx, my)) {
+      return false; // Position is outside the map
     }
+    
+    // Convert angle to bin index for SMAC collision checker
+    float angle_bin = pose2d.theta;
+    while (angle_bin < 0) angle_bin += 2 * M_PI;
+    while (angle_bin >= 2 * M_PI) angle_bin -= 2 * M_PI;
+    
+    float bin_size = cfg_->trajectory.min_resolution_collision_check_angular;
+    int angle_bin_idx = static_cast<int>(angle_bin / bin_size + 0.5f) % static_cast<int>(2 * M_PI / bin_size);
+    
+    // Check collision using SMAC's collision checker
+    return !collision_checker->inCollision(
+        static_cast<float>(mx), static_cast<float>(my), 
+        static_cast<float>(angle_bin_idx), false);  // false = don't traverse unknown space
+        
   } catch (...) {
     return false;
   }
-  return true;
 }
 
 } // namespace teb_local_planner

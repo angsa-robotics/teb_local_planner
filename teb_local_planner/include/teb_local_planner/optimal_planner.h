@@ -77,7 +77,7 @@
 #include <teb_msgs/msg/trajectory_point_msg.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 
-#include <dwb_critics/obstacle_footprint.hpp>
+#include "nav2_smac_planner/collision_checker.hpp"
 
 #include <tf2/transform_datatypes.h>
 
@@ -515,18 +515,18 @@ public:
    * @return \c true, if the robot footprint along the first part of the trajectory intersects with 
    *         any obstacle in the costmap, \c false otherwise.
    */
-  virtual bool isTrajectoryFeasible(dwb_critics::ObstacleFootprintCritic* costmap_model, const std::vector<geometry_msgs::msg::Point>& footprint_spec, double inscribed_radius = 0.0,
+  virtual bool isTrajectoryFeasible(nav2_smac_planner::GridCollisionChecker* collision_checker, const std::vector<geometry_msgs::msg::Point>& footprint_spec, double inscribed_radius = 0.0,
           double circumscribed_radius=0.0, int look_ahead_idx=-1, double feasibility_check_lookahead_distance=-1);
   
   /**
    * @brief Check whether the footprint of the robot at the pose touches an obstacle or not.
    *
    * @param pose2d Pose to check
-   * @param costmap_model Pointer to the costmap model
+   * @param collision_checker Pointer to the collision checker
    * @param footprint_spec The specification of the footprint of the robot in world coordinates
    * @return \c true, if the robot pose is valid, \c false otherwise.
    */
-  virtual bool isPoseValid(geometry_msgs::msg::Pose2D pose2d, dwb_critics::ObstacleFootprintCritic* costmap_model,
+  virtual bool isPoseValid(geometry_msgs::msg::Pose2D pose2d, nav2_smac_planner::GridCollisionChecker* collision_checker,
                            const std::vector<geometry_msgs::msg::Point>& footprint_spec);
 
   //@}

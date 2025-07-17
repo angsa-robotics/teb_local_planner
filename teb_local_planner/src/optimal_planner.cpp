@@ -1327,8 +1327,8 @@ bool TebOptimalPlanner::isPoseValid(geometry_msgs::msg::Pose2D pose2d, nav2_smac
     while (angle_bin < 0) angle_bin += 2 * M_PI;
     while (angle_bin >= 2 * M_PI) angle_bin -= 2 * M_PI;
     
-    float bin_size = cfg_->trajectory.min_resolution_collision_check_angular;
-    int angle_bin_idx = static_cast<int>(angle_bin / bin_size + 0.5f) % static_cast<int>(2 * M_PI / bin_size);
+    float bin_size = 2 * M_PI / 72;
+    int angle_bin_idx = static_cast<int>(angle_bin / bin_size + 0.5f) % 72;
     
     // Check collision using SMAC's collision checker
     return !collision_checker->inCollision(

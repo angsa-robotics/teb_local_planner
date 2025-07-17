@@ -114,9 +114,8 @@ void TebLocalPlannerROS::initialize(nav2_util::LifecycleNode::SharedPtr node)
     costmap_ = costmap_ros_->getCostmap(); // locking should be done in MoveBase.
     
     // Initialize SMAC collision checker
-    auto num_bins = static_cast<int>(2 * M_PI / cfg_->trajectory.min_resolution_collision_check_angular);
     collision_checker_ = std::make_shared<nav2_smac_planner::GridCollisionChecker>(
-        costmap_ros_, num_bins, node);
+        costmap_ros_, 72, node);
 
     // Set the footprint for collision checking
     nav2_costmap_2d::Footprint footprint = costmap_ros_->getRobotFootprint();

@@ -1250,7 +1250,7 @@ void TebOptimalPlanner::getFullTrajectory(std::vector<teb_msgs::msg::TrajectoryP
 }
 
 
-bool TebOptimalPlanner::isTrajectoryFeasible(dwb_critics::ObstacleFootprintCritic* costmap_model, const std::vector<geometry_msgs::msg::Point>& footprint_spec,
+bool TebOptimalPlanner::isTrajectoryFeasible(nav2_mppi_controller::MPPICollisionChecker* collision_checker, const std::vector<geometry_msgs::msg::Point>& footprint_spec,
                                              double inscribed_radius, double circumscribed_radius, int look_ahead_idx, double feasibility_check_lookahead_distance)
 {
   if (look_ahead_idx < 0 || look_ahead_idx >= teb().sizePoses())
@@ -1266,62 +1266,34 @@ bool TebOptimalPlanner::isTrajectoryFeasible(dwb_critics::ObstacleFootprintCriti
     }
   }
 
-  geometry_msgs::msg::Pose2D pose2d;
-  for (int i=0; i <= look_ahead_idx; ++i)
-  {
-    teb().Pose(i).toPoseMsg(pose2d);
-    if (!isPoseValid(pose2d, costmap_model, footprint_spec)){
-      if (visualization_)
-      {
-        visualization_->publishInfeasibleRobotPose(teb().Pose(i), *cfg_->robot_model);
-      }
-      return false;
-    }
-    // Checks if the distance between two poses is higher than the robot radius or the orientation diff is bigger than the specified threshold
-    // and interpolates in that case.
-    // (if obstacles are pushing two consecutive poses away, the center between two consecutive poses might coincide with the obstacle ;-)!
-    if (i<look_ahead_idx)
-    {
-      double delta_rot = g2o::normalize_theta(g2o::normalize_theta(teb().Pose(i+1).theta()) -
-                                              g2o::normalize_theta(teb().Pose(i).theta()));
-      Eigen::Vector2d delta_dist = teb().Pose(i+1).position()-teb().Pose(i).position();
-      if(fabs(delta_rot) > cfg_->trajectory.min_resolution_collision_check_angular || delta_dist.norm() > inscribed_radius)
-      {
-        int n_additional_samples = std::max(std::ceil(fabs(delta_rot) / cfg_->trajectory.min_resolution_collision_check_angular), 
-                                            std::ceil(delta_dist.norm() / inscribed_radius)) - 1;
-        PoseSE2 intermediate_pose = teb().Pose(i);
-        for(int step = 0; step < n_additional_samples; ++step)
-        {
-          intermediate_pose.position() = intermediate_pose.position() + delta_dist / (n_additional_samples + 1.0);
-          intermediate_pose.theta() = g2o::normalize_theta(intermediate_pose.theta() + 
-                                                           delta_rot / (n_additional_samples + 1.0));
-          intermediate_pose.toPoseMsg(pose2d);
-
-          if (!isPoseValid(pose2d, costmap_model, footprint_spec)){
-            if (visualization_)
-            {
-              visualization_->publishInfeasibleRobotPose(intermediate_pose, *cfg_->robot_model);
-            }
-            return false;
-          }
-        }
+  // Prepare trajectory data for collision checker
+  std::vector<float> x_coords, y_coords, yaw_angles;
+  x_coords.reserve(look_ahead_idx + 1);
+  y_coords.reserve(look_ahead_idx + 1);
+  yaw_angles.reserve(look_ahead_idx + 1);
+  
+  // Extract trajectory points with yaw angles
+  for (int i = 0; i <= look_ahead_idx; ++i) {
+    const auto& pose = teb().Pose(i);
+    x_coords.push_back(static_cast<float>(pose.x()));
+    y_coords.push_back(static_cast<float>(pose.y()));
+    yaw_angles.push_back(static_cast<float>(pose.theta()));
+  }
+  
+  // Use trajectory-based collision checking with yaw angles
+  auto result = collision_checker->inCollision(x_coords, y_coords, yaw_angles, false);
+  
+  // Visualize infeasible poses if collision detected
+  if (result.in_collision && visualization_) {
+    for (size_t i = 0; i < result.collision_type.size(); ++i) {
+      if (result.collision_type[i] != nav2_mppi_controller::CollisionType::NONE) {
+        PoseSE2 infeasible_pose(x_coords[i], y_coords[i], yaw_angles[i]);
+        visualization_->publishInfeasibleRobotPose(infeasible_pose, *cfg_->robot_model);
       }
     }
   }
-  return true;
-}
-
-bool TebOptimalPlanner::isPoseValid(geometry_msgs::msg::Pose2D pose2d, dwb_critics::ObstacleFootprintCritic* costmap_model,
-                           const std::vector<geometry_msgs::msg::Point>& footprint_spec)
-{
-  try {
-    if ( costmap_model->scorePose(pose2d, dwb_critics::getOrientedFootprint(pose2d, footprint_spec)) < 0 ) {
-      return false;
-    }
-  } catch (...) {
-    return false;
-  }
-  return true;
+  
+  return !result.in_collision;
 }
 
 } // namespace teb_local_planner

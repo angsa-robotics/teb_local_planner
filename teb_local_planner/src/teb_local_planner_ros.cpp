@@ -68,7 +68,7 @@ namespace teb_local_planner
   
 
 TebLocalPlannerROS::TebLocalPlannerROS() 
-    : costmap_ros_(nullptr), tf_(nullptr), cfg_(new TebConfig()), costmap_model_(nullptr), intra_proc_node_(nullptr),
+    : costmap_ros_(nullptr), tf_(nullptr), cfg_(new TebConfig()), collision_checker_(nullptr), intra_proc_node_(nullptr),
                                            costmap_converter_loader_("costmap_converter", "costmap_converter::BaseCostmapToPolygons"),
                                            custom_via_points_active_(false), no_infeasible_plans_(0),
                                            last_preferred_rotdir_(RotType::none), initialized_(false)
@@ -112,9 +112,9 @@ void TebLocalPlannerROS::initialize(nav2_util::LifecycleNode::SharedPtr node)
     // init other variables
     costmap_ = costmap_ros_->getCostmap(); // locking should be done in MoveBase.
     
-    costmap_model_ = std::make_shared<dwb_critics::ObstacleFootprintCritic>();
-    std::string costmap_model_name("costmap_model");
-    costmap_model_->initialize(node, costmap_model_name, name_, costmap_ros_);
+    // Initialize MPPI collision checker instead of DWB obstacle footprint critic
+    collision_checker_ = std::make_shared<nav2_mppi_controller::MPPICollisionChecker>(
+      costmap_ros_, 72, node); // Using 72 angle quantizations as default
 
     cfg_->map_frame = costmap_ros_->getGlobalFrameID(); // TODO
 
@@ -153,6 +153,12 @@ void TebLocalPlannerROS::initialize(nav2_util::LifecycleNode::SharedPtr node)
     std::pair<double, double> inside_outside = nav2_costmap_2d::calculateMinAndMaxDistances(footprint_spec_);
     robot_inscribed_radius_.store(std::get<0>(inside_outside));
     robot_circumscribed_radius.store(std::get<1>(inside_outside));
+    
+    // Set the footprint for the collision checker
+    // Check if robot model is circular based on the actual robot model type
+    bool use_radius = dynamic_cast<const CircularRobotFootprint*>(cfg_->robot_model.get()) != nullptr;
+    collision_checker_->setFootprint(footprint_spec_, use_radius);
+    
     // Add callback for dynamic parameters
     dyn_params_handler = node->add_on_set_parameters_callback(
       std::bind(&TebConfig::dynamicParametersCallback, std::ref(cfg_), std::placeholders::_1));
@@ -392,10 +398,15 @@ geometry_msgs::msg::TwistStamped TebLocalPlannerROS::computeVelocityCommands(con
       std::pair<double, double> inside_outside = nav2_costmap_2d::calculateMinAndMaxDistances(updated_footprint_spec_);
       robot_inscribed_radius_.store(std::get<0>(inside_outside));
       robot_circumscribed_radius.store(std::get<1>(inside_outside));
+      
+      // Update the collision checker with the new footprint
+      // Check if robot model is circular based on the actual robot model type
+      bool use_radius = dynamic_cast<const CircularRobotFootprint*>(cfg_->robot_model.get()) != nullptr;
+      collision_checker_->setFootprint(footprint_spec_, use_radius);
     }
   }
 
-  bool feasible = planner_->isTrajectoryFeasible(costmap_model_.get(), footprint_spec_, robot_inscribed_radius_, robot_circumscribed_radius, cfg_->trajectory.feasibility_check_no_poses, cfg_->trajectory.feasibility_check_lookahead_distance);
+  bool feasible = planner_->isTrajectoryFeasible(collision_checker_.get(), footprint_spec_, robot_inscribed_radius_, robot_circumscribed_radius, cfg_->trajectory.feasibility_check_no_poses, cfg_->trajectory.feasibility_check_lookahead_distance);
   if (!feasible)
   {
     cmd_vel.twist.linear.x = cmd_vel.twist.linear.y = cmd_vel.twist.angular.z = 0;

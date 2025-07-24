@@ -18,6 +18,7 @@ find_package(ament_cmake REQUIRED)
 find_package(costmap_converter REQUIRED)
 find_package(costmap_converter_msgs REQUIRED)
 find_package(dwb_critics REQUIRED)
+find_package(nav2_mppi_controller REQUIRED)
 find_package(nav_2d_utils REQUIRED)
 find_package(nav2_core REQUIRED)
 find_package(nav2_costmap_2d REQUIRED)
@@ -94,6 +95,7 @@ set(ament_dependencies
     costmap_converter
     costmap_converter_msgs
     dwb_critics
+    nav2_mppi_controller
     nav_2d_utils
     nav2_core
     nav2_costmap_2d

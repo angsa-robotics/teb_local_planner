@@ -1266,17 +1266,31 @@ bool TebOptimalPlanner::isTrajectoryFeasible(nav2_mppi_controller::MPPICollision
     }
   }
 
+  // Get costmap for coordinate conversion
+  auto* costmap = collision_checker->getCostmap();
+  
   // Prepare trajectory data for collision checker
   std::vector<float> x_coords, y_coords, yaw_angles;
   x_coords.reserve(look_ahead_idx + 1);
   y_coords.reserve(look_ahead_idx + 1);
   yaw_angles.reserve(look_ahead_idx + 1);
   
-  // Extract trajectory points with yaw angles
+  // Extract trajectory points and convert world coordinates to map coordinates
   for (int i = 0; i <= look_ahead_idx; ++i) {
     const auto& pose = teb().Pose(i);
-    x_coords.push_back(static_cast<float>(pose.x()));
-    y_coords.push_back(static_cast<float>(pose.y()));
+    
+    // Convert world coordinates to map coordinates
+    unsigned int mx, my;
+    if (!costmap->worldToMap(pose.x(), pose.y(), mx, my)) {
+      if (visualization_) {
+        PoseSE2 infeasible_pose(pose.x(), pose.y(), pose.theta());
+        visualization_->publishInfeasibleRobotPose(infeasible_pose, *cfg_->robot_model);
+      }
+      return false;
+    }
+    
+    x_coords.push_back(static_cast<float>(mx));
+    y_coords.push_back(static_cast<float>(my));
     yaw_angles.push_back(static_cast<float>(pose.theta()));
   }
   
@@ -1287,7 +1301,10 @@ bool TebOptimalPlanner::isTrajectoryFeasible(nav2_mppi_controller::MPPICollision
   if (result.in_collision && visualization_) {
     for (size_t i = 0; i < result.collision_type.size(); ++i) {
       if (result.collision_type[i] != nav2_mppi_controller::CollisionType::NONE) {
-        PoseSE2 infeasible_pose(x_coords[i], y_coords[i], yaw_angles[i]);
+        // Convert back to world coordinates for visualization
+        double wx, wy;
+        costmap->mapToWorld(x_coords[i], y_coords[i], wx, wy);
+        PoseSE2 infeasible_pose(wx, wy, yaw_angles[i]);
         visualization_->publishInfeasibleRobotPose(infeasible_pose, *cfg_->robot_model);
       }
     }

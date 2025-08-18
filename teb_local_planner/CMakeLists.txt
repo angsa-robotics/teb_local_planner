@@ -37,6 +37,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
+find_package(nav2_ros_common REQUIRED)
 
 message(STATUS "System: ${CMAKE_SYSTEM}")
 ## System dependencies are found with CMake's conventions
@@ -113,6 +114,7 @@ set(ament_dependencies
     visualization_msgs
     builtin_interfaces
     interactive_markers
+    nav2_ros_common
 )
 ament_target_dependencies(teb_local_planner
    ${ament_dependencies}

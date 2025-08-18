@@ -1,5 +1,5 @@
 #include "rclcpp/rclcpp.hpp"
-#include "nav2_util/lifecycle_node.hpp"
+#include "nav2_ros_common/lifecycle_node.hpp"
 
 #include "teb_local_planner/teb_local_planner_ros.h"
 #include "geometry_msgs/msg/point_stamped.hpp"
@@ -13,7 +13,7 @@
 
 using namespace teb_local_planner;
 
-class TestOptimNode : public nav2_util::LifecycleNode
+class TestOptimNode : public nav2::LifecycleNode
 {
 public:
   TestOptimNode();
@@ -58,7 +58,7 @@ private:
 
 // Constructor — leave empty to avoid shared_from_this in constructor
 TestOptimNode::TestOptimNode()
-  : nav2_util::LifecycleNode("test_optim_node") {
+  : nav2::LifecycleNode("test_optim_node") {
 
 }
 
@@ -105,15 +105,15 @@ void TestOptimNode::init()
     std::bind(&TestOptimNode::publishCycleCallback, this));
 
   custom_obst_sub = this->create_subscription<costmap_converter_msgs::msg::ObstacleArrayMsg>(
-    "obstacles", 1,
+    "obstacles",
     std::bind(&TestOptimNode::customObstacleCallback, this, std::placeholders::_1));
 
   clicked_points_sub = this->create_subscription<geometry_msgs::msg::PointStamped>(
-    "/clicked_point", 5,
+    "/clicked_point",
     std::bind(&TestOptimNode::clickedPointsCallback, this, std::placeholders::_1));
 
   via_points_sub = this->create_subscription<nav_msgs::msg::Path>(
-    "via_points", 1,
+    "via_points",
     std::bind(&TestOptimNode::viaPointsCallback, this, std::placeholders::_1));
 }
 

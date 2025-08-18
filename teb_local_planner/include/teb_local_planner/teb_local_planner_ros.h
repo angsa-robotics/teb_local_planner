@@ -68,7 +68,7 @@
 #include <costmap_converter/costmap_converter_interface.h>
 #include "nav2_costmap_2d/costmap_filters/filter_values.hpp"
 
-#include <nav2_util/lifecycle_node.hpp>
+#include <nav2_ros_common/lifecycle_node.hpp>
 #include <nav2_costmap_2d/costmap_2d_ros.hpp>
 #include <nav_2d_utils/parameters.hpp>
 #include "rcl_interfaces/msg/set_parameters_result.hpp"
@@ -109,7 +109,7 @@ public:
    * @param costmap_ros Cost map representing occupied and free space
    */
   void configure(
-    const rclcpp_lifecycle::LifecycleNode::WeakPtr & parent,
+    const nav2::LifecycleNode::WeakPtr & parent,
     std::string name,
     std::shared_ptr<tf2_ros::Buffer> tf,
     std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros) override;
@@ -121,7 +121,7 @@ public:
   /**
     * @brief Initializes the teb plugin
     */
-  void initialize(nav2_util::LifecycleNode::SharedPtr node);
+  void initialize(nav2::LifecycleNode::SharedPtr node);
 
   /**
     * @brief Set the plan that the teb local planner is following
@@ -159,7 +159,7 @@ public:
    * @param nh const reference to the local rclcpp::Node::SharedPtr
    * @return Robot footprint model used for optimization
    */
-  RobotFootprintModelPtr getRobotFootprintFromParamServer(nav2_util::LifecycleNode::SharedPtr node);
+  RobotFootprintModelPtr getRobotFootprintFromParamServer(nav2::LifecycleNode::SharedPtr node);
   
   /** 
    * @brief Set the footprint from the given XmlRpcValue.
@@ -364,7 +364,7 @@ protected:
 
 private:
   // Definition of member variables
-  rclcpp_lifecycle::LifecycleNode::WeakPtr nh_;
+  nav2::LifecycleNode::WeakPtr nh_;
   rclcpp::Logger logger_{rclcpp::get_logger("TEBLocalPlanner")};
   rclcpp::Clock::SharedPtr clock_;
   rclcpp::Node::SharedPtr intra_proc_node_;

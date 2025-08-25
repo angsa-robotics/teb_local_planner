@@ -56,7 +56,6 @@
 
 #include <nav2_core/controller_exceptions.hpp>
 #include <nav2_costmap_2d/footprint.hpp>
-#include <nav_2d_utils/tf_help.hpp>
 
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_eigen/tf2_eigen.hpp>

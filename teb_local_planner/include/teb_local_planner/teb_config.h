@@ -44,7 +44,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <Eigen/Core>
 #include <Eigen/StdVector>
-#include <nav_2d_utils/parameters.hpp>
 #include "teb_local_planner/robot_footprint_model.h"
 #include <nav2_costmap_2d/footprint.hpp>
 

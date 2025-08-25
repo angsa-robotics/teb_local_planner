@@ -1266,11 +1266,11 @@ bool TebOptimalPlanner::isTrajectoryFeasible(dwb_critics::ObstacleFootprintCriti
     }
   }
 
-  geometry_msgs::msg::Pose2D pose2d;
+  geometry_msgs::msg::Pose pose;
   for (int i=0; i <= look_ahead_idx; ++i)
   {
-    teb().Pose(i).toPoseMsg(pose2d);
-    if (!isPoseValid(pose2d, costmap_model, footprint_spec)){
+    teb().Pose(i).toPoseMsg(pose);
+    if (!isPoseValid(pose, costmap_model, footprint_spec)){
       if (visualization_)
       {
         visualization_->publishInfeasibleRobotPose(teb().Pose(i), *cfg_->robot_model);
@@ -1295,9 +1295,9 @@ bool TebOptimalPlanner::isTrajectoryFeasible(dwb_critics::ObstacleFootprintCriti
           intermediate_pose.position() = intermediate_pose.position() + delta_dist / (n_additional_samples + 1.0);
           intermediate_pose.theta() = g2o::normalize_theta(intermediate_pose.theta() + 
                                                            delta_rot / (n_additional_samples + 1.0));
-          intermediate_pose.toPoseMsg(pose2d);
+          intermediate_pose.toPoseMsg(pose);
 
-          if (!isPoseValid(pose2d, costmap_model, footprint_spec)){
+          if (!isPoseValid(pose, costmap_model, footprint_spec)){
             if (visualization_)
             {
               visualization_->publishInfeasibleRobotPose(intermediate_pose, *cfg_->robot_model);
@@ -1311,11 +1311,11 @@ bool TebOptimalPlanner::isTrajectoryFeasible(dwb_critics::ObstacleFootprintCriti
   return true;
 }
 
-bool TebOptimalPlanner::isPoseValid(geometry_msgs::msg::Pose2D pose2d, dwb_critics::ObstacleFootprintCritic* costmap_model,
+bool TebOptimalPlanner::isPoseValid(geometry_msgs::msg::Pose pose, dwb_critics::ObstacleFootprintCritic* costmap_model,
                            const std::vector<geometry_msgs::msg::Point>& footprint_spec)
 {
   try {
-    if ( costmap_model->scorePose(pose2d, dwb_critics::getOrientedFootprint(pose2d, footprint_spec)) < 0 ) {
+    if ( costmap_model->scorePose(pose, dwb_critics::getOrientedFootprint(pose, footprint_spec)) < 0 ) {
       return false;
     }
   } catch (...) {
